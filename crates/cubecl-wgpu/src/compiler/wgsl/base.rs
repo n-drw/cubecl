@@ -1,5 +1,6 @@
 use cubecl_core::ir::{self as cube, ConstantScalarValue, FloatKind, Id, IntKind};
 use std::fmt::Display;
+use half::f16;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Variable {
@@ -58,6 +59,7 @@ pub enum Variable {
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub enum Elem {
+    F16,
     F32,
     AtomicF32,
     I32,
@@ -225,6 +227,7 @@ impl Item {
 impl Elem {
     pub fn size(&self) -> usize {
         match self {
+            Self::F16 => core::mem::size_of::<f16>(),
             Self::F32 => core::mem::size_of::<f32>(),
             Self::AtomicF32 => core::mem::size_of::<f32>(),
             Self::I32 => core::mem::size_of::<i32>(),
@@ -245,6 +248,7 @@ impl Elem {
 impl Display for Elem {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::F16 => f.write_str("f16"),
             Self::F32 => f.write_str("f32"),
             Self::AtomicF32 => f.write_str("atomic<f32>"),
             Self::I32 => f.write_str("i32"),
@@ -300,12 +304,10 @@ impl Display for Variable {
                     _ => unimplemented!("{:?} not supported in WGSL", kind),
                 },
                 ConstantScalarValue::Float(val, kind) => match kind {
-                    FloatKind::F16 | FloatKind::BF16 | FloatKind::TF32 => {
-                        todo!("Unsupported")
-                    }
-                    FloatKind::F32 | FloatKind::Flex32 | FloatKind::F64 => {
+                    FloatKind::F16 | FloatKind::F32 | FloatKind::Flex32 | FloatKind::F64 => {
                         f.write_str(&format_number(*val))
-                    }
+                    },
+                    _ => unimplemented!("{:?} not supported in WGSL", kind),
                 },
                 ConstantScalarValue::UInt(val, _) => write!(f, "{}u", *val as u32),
                 ConstantScalarValue::Bool(val) => write!(f, "{}", val),

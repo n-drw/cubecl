@@ -144,10 +144,12 @@ impl WgslCompiler {
         }
     }
 
-    fn compile_elem(value: cube::Elem) -> wgsl::Elem {
+    fn compile_elem(
+        value: cube::Elem
+    ) -> wgsl::Elem {
         match value {
             cube::Elem::Float(f) => match f {
-                cube::FloatKind::F16 => panic!("f16 is not yet supported"),
+                cube::FloatKind::F16 =>  wgsl::Elem::F16,
                 cube::FloatKind::BF16 => panic!("bf16 is not a valid WgpuElement"),
                 cube::FloatKind::TF32 => panic!("tf32 is not a valid WgpuElement"),
                 cube::FloatKind::Flex32 => wgsl::Elem::F32,

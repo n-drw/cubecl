@@ -71,10 +71,9 @@ fn request_device(
     limits: Limits,
 ) -> (wgpu::Device, wgpu::Queue) {
     let full_feat = features;
-    // This registers only f16 but not u8/i8, so remove so we can manually add them
-    features.remove(Features::SHADER_F16);
     // Skip float features since we already register a more general version manually
     features.remove(Features::SHADER_FLOAT32_ATOMIC);
+    features.insert(Features::SHADER_FLOAT16);
 
     let ash = adapter.shared_instance();
     let mut extended_feat = ExtendedFeatures::from_adapter(ash.raw_instance(), adapter, features);
@@ -160,6 +159,7 @@ fn register_features(
     log::debug!("Supported Vulkan features: {extended_feat:#?}");
 
     register_types(props, &extended_feat);
+    comp_options.supports_f16 = extended_feat.float16_int8.shader_float16 == TRUE;
     comp_options.supports_u64 = true;
 
     if let Some(atomic_float) = &extended_feat.atomic_float {

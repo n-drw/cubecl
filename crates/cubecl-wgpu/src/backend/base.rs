@@ -3,8 +3,7 @@ use std::{borrow::Cow, sync::Arc};
 use cubecl_core::{ExecutionMode, Feature, WgpuCompilationOptions, prelude::CompiledKernel};
 use cubecl_runtime::DeviceProperties;
 use wgpu::{
-    Adapter, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType,
-    ComputePipeline, Device, PipelineLayoutDescriptor, Queue, ShaderModuleDescriptor, ShaderStages,
+    naga::{self, back::wgsl::WriterFlags}, Adapter, BindGroupLayoutDescriptor, BindGroupLayoutEntry, BindingType, BufferBindingType, ComputePipeline, Device, PipelineLayoutDescriptor, Queue, ShaderModuleDescriptor, ShaderStages
 };
 
 use crate::{AutoCompiler, AutoRepresentation, WgpuServer};
@@ -71,13 +70,29 @@ impl WgpuServer {
                 // SAFETY: Cube guarantees OOB safety when launching in checked mode. Launching in unchecked mode
                 // is only available through the use of unsafe code.
                 unsafe {
-                    self.device.create_shader_module_trusted(
-                        ShaderModuleDescriptor {
-                            label: None,
-                            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(source)),
-                        },
-                        checks,
+                    let naga_module: naga::Module = naga::front::wgsl::parse_str(source).unwrap();
+                    let mut caps = naga::valid::Capabilities::empty();
+                    if self.device.features().contains(wgpu::Features::SHADER_F16) {
+                        caps |= naga::valid::Capabilities::SHADER_FLOAT16;
+                    }
+                    let module_info: naga::valid::ModuleInfo = naga::valid::Validator::new(
+                        naga::valid::ValidationFlags::all(),
+                        caps,
                     )
+                    .subgroup_stages(naga::valid::ShaderStages::all())
+                    .subgroup_operations(naga::valid::SubgroupOperationSet::all())
+                    .validate(&naga_module).unwrap();
+
+                    let mut source = String::new(); 
+                    naga::back::wgsl::Writer::new(
+                        &mut source,
+                        WriterFlags::all(),
+                    ).write(&naga_module, &module_info).unwrap();
+
+                   self.device.create_shader_module_trusted(wgpu::ShaderModuleDescriptor {
+                        label: None,
+                        source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(&source)) 
+                    }, checks)
                 }
             }
         };

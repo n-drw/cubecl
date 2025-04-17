@@ -1,7 +1,5 @@
 use cubecl_core::{
-    AtomicFeature, Compiler, Feature, WgpuCompilationOptions,
-    compute::Visibility,
-    ir::{Elem, UIntKind},
+    compute::Visibility, ir::{Elem, FloatKind, UIntKind}, AtomicFeature, Compiler, Feature, WgpuCompilationOptions
 };
 use cubecl_runtime::DeviceProperties;
 
@@ -53,6 +51,10 @@ pub fn register_wgsl_features(
     if props.feature_enabled(Feature::Type(Elem::UInt(UIntKind::U64))) {
         comp_options.supports_u64 = true;
     }
+
+    if props.feature_enabled(Feature::Type(Elem::Float(FloatKind::F16))) {
+        comp_options.supports_f16 = true;
+    }
 }
 
 pub fn register_types(props: &mut DeviceProperties<Feature>, adapter: &wgpu::Adapter) {
@@ -78,12 +80,17 @@ pub fn register_types(props: &mut DeviceProperties<Feature>, adapter: &wgpu::Ada
 
     let feats = adapter.features();
 
+    log::debug!("Supported features: {:?}", feats);
+
     if feats.contains(wgpu::Features::SHADER_INT64) {
         register(Elem::Int(IntKind::I64));
         register(Elem::UInt(UIntKind::U64));
     }
     if feats.contains(wgpu::Features::SHADER_F64) {
         register(Elem::Float(FloatKind::F64));
+    }
+    if feats.contains(wgpu::Features::SHADER_F16) {
+        register(Elem::Float(FloatKind::F16));
     }
     if feats.contains(wgpu::Features::SHADER_FLOAT32_ATOMIC) {
         register(Elem::AtomicFloat(FloatKind::F32));

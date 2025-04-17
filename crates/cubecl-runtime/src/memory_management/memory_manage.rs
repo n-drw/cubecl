@@ -139,10 +139,11 @@ impl<Storage: ComputeStorage> MemoryManagement<Storage> {
             MemoryConfiguration::SubSlices => {
                 // Round chunk size to be aligned.
                 let memory_alignment = properties.alignment;
-                let max_page = properties.max_page_size;
+                let max_page = 32 * 1024 * 1024 * 1024;
+;
                 let mut pools = Vec::new();
 
-                const MB: u64 = 1024 * 1024;
+                const MB: u64 = 1024 * 1024 * 1024 * 3;
 
                 // Add in a pool for allocations that are smaller than the min alignment,
                 // as they can't use offsets at all (on wgpu at least).
@@ -203,7 +204,7 @@ impl<Storage: ComputeStorage> MemoryManagement<Storage> {
 
                 let sizes = generate_bucket_sizes(
                     MIN_BUCKET_SIZE,
-                    properties.max_page_size,
+                    32 * 1024 * 1024 * 1024,
                     NUM_POOLS,
                     properties.alignment,
                 );

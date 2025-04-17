@@ -93,6 +93,8 @@ impl Display for ComputeShader {
             f.write_str("enable subgroups;")?;
         }
 
+        f.write_str("enable f16;")?;
+
         Self::format_bindings(f, "buffer", &self.buffers, 0)?;
 
         let mut offset = self.buffers.len();

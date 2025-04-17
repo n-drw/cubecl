@@ -191,9 +191,12 @@ pub(crate) fn create_client_on_setup(
 ) -> ComputeClient<WgpuServer, MutexComputeChannel<WgpuServer>> {
     let limits = setup.device.limits();
     let adapter_limits = setup.adapter.limits();
+    let max_memory_size = limits.max_buffer_size.min(
+        limits.max_storage_buffer_binding_size as u64
+    );
 
     let mem_props = MemoryDeviceProperties {
-        max_page_size: limits.max_storage_buffer_binding_size as u64,
+        max_page_size: max_memory_size,
         alignment: WgpuStorage::ALIGNMENT.max(limits.min_storage_buffer_offset_alignment as u64),
     };
     let max_count = adapter_limits.max_compute_workgroups_per_dimension;
@@ -243,9 +246,12 @@ pub(crate) fn create_client_on_setup(
     );
     let channel = MutexComputeChannel::new(server);
 
+    if features.contains(wgpu::Features::SHADER_F16) {
+        device_props.register_feature(Feature::Type(Elem::Float(FloatKind::F16)));
+    }
+
     if features.contains(wgpu::Features::SHADER_FLOAT32_ATOMIC) {
         device_props.register_feature(Feature::Type(Elem::AtomicFloat(FloatKind::F32)));
-
         device_props.register_feature(Feature::AtomicFloat(AtomicFeature::LoadStore));
         device_props.register_feature(Feature::AtomicFloat(AtomicFeature::Add));
     }
